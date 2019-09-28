@@ -19,7 +19,7 @@ setup(
     name='hk-address-parser',
     version=get_version(),
     description='The Universal Python Library for HKAddressParser',
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     author='wingkwong',
     url='https://github.com/wingkwong/hk-address-parser',
     scripts=[],
