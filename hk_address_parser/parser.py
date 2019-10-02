@@ -4,59 +4,59 @@ from functools import reduce
 from operator import attrgetter
 
 
-def searchResult(address, responseFromOGCIO):
-    normalizedAddress = removeFloor(address).upper()
-    normalizedOGCIOResult = normalizeResponse(responseFromOGCIO)
-    return parseAddress(normalizedAddress, normalizedOGCIOResult)
+def search_result(address, response_from_ogcio):
+    normalized_address = remove_floor(address).upper()
+    normalized_ogcio_result = normalize_response(response_from_ogcio)
+    return parse_address(normalized_address, normalized_ogcio_result)
 
 
-def removeFloor(address):
+def remove_floor(address):
     return re.sub(r"/([0-9A-z\-\s]+[樓層]|[0-9A-z號\-\s]+[舖鋪]|地[下庫]|平台).*/g", "", address)
 
 
-def normalizeResponse(responseFromOGCIO):
+def normalize_response(response_from_ogcio):
     return list(
         map(
             (
                 lambda record:  
                 (
                     {
-                        'chi': eliminateLangKeys(record['Address']['PremisesAddress']['ChiPremisesAddress']),
-                        'eng': eliminateLangKeys(record['Address']['PremisesAddress']['EngPremisesAddress']),
+                        'chi': eliminate_lang_keys(record['Address']['PremisesAddress']['ChiPremisesAddress']),
+                        'eng': eliminate_lang_keys(record['Address']['PremisesAddress']['EngPremisesAddress']),
                         'geo': record['Address']['PremisesAddress']['GeospatialInformation']
                     }
                 )
             ), 
-            responseFromOGCIO['AddressLookupResult']['SuggestedAddress']
+            response_from_ogcio['AddressLookupResult']['SuggestedAddress']
         )
     )
 
 
-def parseAddress(address, normalized_ocgio_result):
+def parse_address(address, normalized_ocgio_result):
     for record in normalized_ocgio_result:
-        matches = findMatchFromOGCIORecord(address, record)
-        record['score'] = calculateScoreFromMatches(matches)
+        matches = find_match_from__ogcio_record(address, record)
+        record['score'] = calculate_score_from_matches(matches)
         record['matches'] = matches
-        record = transformDistrict(record)
+        record = transform_district(record)
 
     normalized_ocgio_result = sorted(normalized_ocgio_result, key=attrgetter('score'))
     return normalized_ocgio_result[0:200]
 
 
-def transformDistrict(ogcio_record):
+def transform_district(ogcio_record):
     if ogcio_record['eng']['District']:
-        ogcio_record['eng']['District']['DcDistrict'] = dcDistrictMapping( ogcio_record['eng']['District']['DcDistrict'], False)
+        ogcio_record['eng']['District']['DcDistrict'] = dc_district_mapping( ogcio_record['eng']['District']['DcDistrict'], False)
 
     if ogcio_record['chi']['District']:
-        ogcio_record['chi']['District']['DcDistrict'] = dcDistrictMapping( ogcio_record['chi']['District']['DcDistrict'], False)
+        ogcio_record['chi']['District']['DcDistrict'] = dc_district_mapping( ogcio_record['chi']['District']['DcDistrict'], False)
 
     if ogcio_record['eng']['Region']:
-         ogcio_record['eng']['Region'] = regionMapping(ogcio_record['eng']['Region'])
+         ogcio_record['eng']['Region'] = region_mapping(ogcio_record['eng']['Region'])
     
     return ogcio_record
 
 
-def dcDistrictMapping(val, is_chinese):
+def dc_district_mapping(val, is_chinese):
     dc_district = constant.DC_DISTRICT
     for district in dc_district:
         if district == val:
@@ -70,86 +70,86 @@ def dcDistrictMapping(val, is_chinese):
         return dc_district['invalid']['eng']
     
 
-def regionMapping(val):
+def region_mapping(val):
     region = constant.REGION
     for reg in region:
         if reg == val:
             return region[reg]['eng']
 
 
-def eliminateLangKeys(record):
+def eliminate_lang_keys(record):
     result = {}
     for attr, value in record.items():
-        refinedKey = re.sub("^(Chi|Eng)", '', attr)
+        refined_key = re.sub("^(Chi|Eng)", '', attr)
         if type(value) == dict:
-            result[refinedKey] = eliminateLangKeys(value)
+            result[refined_key] = eliminate_lang_keys(value)
         else:
-            result[refinedKey] = value
+            result[refined_key] = value
     return result
 
 
-def findMatchFromOGCIORecord(address, ogcio_record):
+def find_match_from__ogcio_record(address, ogcio_record):
     matches = []
     for key in constant.ELEMENT_PRIORITY:
-        if ogcio_record['chi'][key] is not None and not isChinese(address):
-            occurance = searchOccurance(address, key, ogcio_record['chi'][key])
+        if ogcio_record['chi'][key] is not None and not is_chinese(address):
+            occurance = search_occurance(address, key, ogcio_record['chi'][key])
 
             if occurance is None:
                 continue
             
             matches.append(occurance)
 
-        if ogcio_record['eng'][key] is not None and not isChinese(address):
-            occurance = searchOccurance(address, key, ogcio_record['eng'][key])
+        if ogcio_record['eng'][key] is not None and not is_chinese(address):
+            occurance = search_occurance(address, key, ogcio_record['eng'][key])
             if occurance is None:
                 continue
             matches.append(occurance)
-    return findMaximumNonOverlappingMatches(address, matches)
+    return find_maximum_non_overlapping_matches(address, matches)
 
 
-def calculateScoreFromMatches(matches):
+def calculate_score_from_matches(matches):
     pass
 
 
-def isChinese(s):
+def is_chinese(s):
     return re.search(r"/[^\u0000-\u00ff]/", s)
 
 
-def searchOccurance(address, ogcioRecordElementKey, ogcioRecordElement):
+def search_occurance(address, ogcio_record_elementKey, ogcio_record_element):
     switcher = {
-        constant.OGCIO_KEY_STREET:           searchOccuranceForStreet(address, ogcioRecordElement),
-        constant.OGCIO_KEY_VILLAGE:          searchOccuranceForVillage(address, ogcioRecordElement),
-        constant.OGCIO_KEY_BLOCK:            searchOccuranceForBlock(address, ogcioRecordElement),
-        constant.OGCIO_KEY_PHASE:            searchOccuranceForPhase(address, ogcioRecordElement),
-        constant.OGCIO_KEY_ESTATE:           searchOccuranceForEstate(address, ogcioRecordElement),
-        constant.OGCIO_KEY_REGION:           searchOccuranceForRegion(address, ogcioRecordElement),
-        constant.OGCIO_KEY_BUILDING_NAME:    searchOccuranceForBuildingName(address, ogcioRecordElement)
+        constant.OGCIO_KEY_STREET:           search_occurance_for_street(address, ogcio_record_element),
+        constant.OGCIO_KEY_VILLAGE:          search_occurance_for_village(address, ogcio_record_element),
+        constant.OGCIO_KEY_BLOCK:            search_occurance_for_block(address, ogcio_record_element),
+        constant.OGCIO_KEY_PHASE:            search_occurance_for_phase(address, ogcio_record_element),
+        constant.OGCIO_KEY_ESTATE:           search_occurance_for_estate(address, ogcio_record_element),
+        constant.OGCIO_KEY_REGION:           search_occurance_for_region(address, ogcio_record_element),
+        constant.OGCIO_KEY_BUILDING_NAME:    search_occurance_for_building_name(address, ogcio_record_element)
     }
     
     return switcher.get(
-        ogcioRecordElementKey,
+        ogcio_record_elementKey,
         None
     )
 
-def searchOccuranceForStreet(address, ogcioRecordElement):
-    street_name = ogcioRecordElement['StreetName']
-    building_no_from = ogcioRecordElement['BuildingNoFrom']
-    building_no_to = ogcioRecordElement['BuildingNoTo']
-    address_to_be_searched = splitValueForSpaceIfChinese(street_name)
-    return searchSimilarityForStreetOrVillage(constant.OGCIO_KEY_STREET, address, address_to_be_searched, building_no_from, building_no_to)
+def search_occurance_for_street(address, ogcio_record_element):
+    street_name = ogcio_record_element['StreetName']
+    building_no_from = ogcio_record_element['BuildingNoFrom']
+    building_no_to = ogcio_record_element['BuildingNoTo']
+    address_to_be_searched = split_value_for_space_if_chinese(street_name)
+    return search_similarity_for_street_or_village(constant.OGCIO_KEY_STREET, address, address_to_be_searched, building_no_from, building_no_to)
 
 
-def searchOccuranceForVillage(address, ogcioRecordElement):
-    village_name = ogcioRecordElement['VillageName']
-    building_no_from = ogcioRecordElement['BuildingNoFrom']
-    building_no_to = ogcioRecordElement['BuildingNoTo']
-    address_to_be_searched = splitValueForSpaceIfChinese(village_name)
-    return searchSimilarityForStreetOrVillage(constant.OGCIO_KEY_VILLAGE, address, address_to_be_searched, building_no_from, building_no_to)
+def search_occurance_for_village(address, ogcio_record_element):
+    village_name = ogcio_record_element['VillageName']
+    building_no_from = ogcio_record_element['BuildingNoFrom']
+    building_no_to = ogcio_record_element['BuildingNoTo']
+    address_to_be_searched = split_value_for_space_if_chinese(village_name)
+    return search_similarity_for_street_or_village(constant.OGCIO_KEY_VILLAGE, address, address_to_be_searched, building_no_from, building_no_to)
 
 
-def searchOccuranceForBlock(address, ogcioRecordElement):
-    block_descriptor = ogcioRecordElement['BlockDescriptor']
-    block_no = ogcioRecordElement['BlockNo']
+def search_occurance_for_block(address, ogcio_record_element):
+    block_descriptor = ogcio_record_element['BlockDescriptor']
+    block_no = ogcio_record_element['BlockNo']
     if address in block_no + block_descriptor:
         match = Match(
             constant.CONFIDENT_ALL_MATCH,
@@ -161,7 +161,7 @@ def searchOccuranceForBlock(address, ogcioRecordElement):
         )
 
         if block_no:
-            if not tryToMatchAnyNumber(
+            if not try_to_match_any_number(
                 address,
                 int(block_no)
             ):
@@ -171,9 +171,9 @@ def searchOccuranceForBlock(address, ogcioRecordElement):
     return None 
 
 
-def searchOccuranceForPhase(address, ogcioRecordElement):
-    phase_no = ogcioRecordElement['PhaseNo']
-    phase_name = ogcioRecordElement['PhaseName']
+def search_occurance_for_phase(address, ogcio_record_element):
+    phase_no = ogcio_record_element['PhaseNo']
+    phase_name = ogcio_record_element['PhaseName']
     if address in phase_name + phase_no:
         match = Match(
             constant.CONFIDENT_ALL_MATCH,
@@ -185,7 +185,7 @@ def searchOccuranceForPhase(address, ogcioRecordElement):
         )
         
         if phase_no:
-            if not tryToMatchAnyNumber(
+            if not try_to_match_any_number(
                 address,
                 int(phase_no)
             ):
@@ -195,8 +195,8 @@ def searchOccuranceForPhase(address, ogcioRecordElement):
     return None 
 
 
-def searchOccuranceForEstate(address, ogcioRecordElement):
-    estate_name = ogcioRecordElement['EstateName']
+def search_occurance_for_estate(address, ogcio_record_element):
+    estate_name = ogcio_record_element['EstateName']
     if address in estate_name:
         return Match(
             constant.CONFIDENT_ALL_MATCH, 
@@ -208,7 +208,7 @@ def searchOccuranceForEstate(address, ogcioRecordElement):
     return None
 
 
-def searchOccuranceForRegion(address, region):
+def search_occurance_for_region(address, region):
     if address in region:
         return Match(
             constant.CONFIDENT_ALL_MATCH, 
@@ -220,7 +220,7 @@ def searchOccuranceForRegion(address, region):
     return None
 
 
-def searchOccuranceForBuildingName(address, building_name):
+def search_occurance_for_building_name(address, building_name):
     if address in building_name:
         return Match(
             constant.CONFIDENT_ALL_MATCH, 
@@ -230,7 +230,7 @@ def searchOccuranceForBuildingName(address, building_name):
             ]
         )
     else:
-        match_percentage, match_word = findPartialMatch(address, building_name)
+        match_percentage, match_word = find_partial_match(address, building_name)
         if match_percentage > 0:
             match = Match(
                 constant.CONFIDENT_ALL_MATCH, 
@@ -239,7 +239,7 @@ def searchOccuranceForBuildingName(address, building_name):
                     match_word
                 ]
             )
-            match.confident = modifyConfidentByPartialMatchPercentage(
+            match.confident = modify_confident_by_partial_match_percentage(
                 match.confident, 
                 match_percentage
             )
@@ -247,14 +247,14 @@ def searchOccuranceForBuildingName(address, building_name):
         return None
 
 
-def splitValueForSpaceIfChinese(value):
-    if isChinese(value) and re.search(r"/\s/", value):
+def split_value_for_space_if_chinese(value):
+    if is_chinese(value) and re.search(r"/\s/", value):
         tokens = re.split(r"/\s/")
         return tokens[-1]
     return value
 
 
-def searchSimilarityForStreetOrVillage(type, address, address_to_search, building_no_from, building_no_to):
+def search_similarity_for_street_or_village(type, address, address_to_search, building_no_from, building_no_to):
     sim = Match(
         0,
         type,
@@ -263,12 +263,12 @@ def searchSimilarityForStreetOrVillage(type, address, address_to_search, buildin
 
     if address in address_to_search:
         sim.confident = constant.CONFIDENT_ALL_MATCH
-        sim.matchedWords.append(address_to_search)
+        sim.matched_words.append(address_to_search)
     else:
-        match_percentage, match_word = findPartialMatch(address, address_to_search)
+        match_percentage, match_word = find_partial_match(address, address_to_search)
         if match_percentage > 0:
-            sim.confident = modifyConfidentByPartialMatchPercentage(constant.CONFIDENT_ALL_MATCH, match_percentage)
-            sim.matchedWords.append(match_word)
+            sim.confident = modify_confident_by_partial_match_percentage(constant.CONFIDENT_ALL_MATCH, match_percentage)
+            sim.matched_words.append(match_word)
 
     if building_no_from:
         no_from = int(building_no_from)
@@ -280,13 +280,13 @@ def searchSimilarityForStreetOrVillage(type, address, address_to_search, buildin
         isOdd = int(building_no_from) % 2 == 1
     
         if no_from == no_to:
-            if not tryToMatchAnyNumber(address, no_from):
+            if not try_to_match_any_number(address, no_from):
                 if tryToMatchRangeOfNumber(address, no_from, no_to, not isOdd):
                     sim.confident *= constant.CONFIDENT_MULTIPLIER_OPPOSITE_STREET
                 else:
                     sim.confident *= constant.CONFIDENT_MULTIPLIER_NAME_ONLY
             else:
-                sim.matchedWords.append(no_from + '')
+                sim.matched_words.append(no_from + '')
                 sim.confident *= constant.CONFIDENT_MULTIPLIER_FULL_STREET_MATCH
         else:
             if not tryToMatchRangeOfNumber(address, no_from, no_to, isOdd):
@@ -301,7 +301,7 @@ def searchSimilarityForStreetOrVillage(type, address, address_to_search, buildin
         sim.confident *= constant.CONFIDENT_MULTIPLIER_NAME_ONLY
     return sim
 
-def tryToMatchAnyNumber(address, number):
+def try_to_match_any_number(address, number):
     matches = re.match(r"/\d+/g")
     if matches is None:
         return False
@@ -327,20 +327,20 @@ def tryToMatchRangeOfNumber(address, no_from, no_to, isOdd):
     return False
 
 
-def findPartialMatch(string, stringToSearch):
+def find_partial_match(string, string_to_search):
     match = {
         'match_percentage': 0,
         'matched_word': None
     }
 
-    if stringToSearch.index(string):
+    if string_to_search.index(string):
         match.match_percentage = 0.9
         match.match_word = string
     else:   
         break_loop = False
-        for i in range(0, stringToSearch.length):
-            for j in range(stringToSearch.length, i):
-               substring = stringToSearch[i, j]
+        for i in range(0, string_to_search.length):
+            for j in range(string_to_search.length, i):
+               substring = string_to_search[i, j]
                if string in substring:
                     match.match_percentage = len(substring) * 1.0 / len(substring)
                     match.match_word = substring
@@ -351,39 +351,39 @@ def findPartialMatch(string, stringToSearch):
     return match
 
 
-def modifyConfidentByPartialMatchPercentage(confident, match_percentage):
+def modify_confident_by_partial_match_percentage(confident, match_percentage):
     return confident * match_percentage * match_percentage * constant.CONFIDENT_MULTIPLIER_PARTIAL_MATCH
 
 def filterMatchedKey(matches, target_matched_key):
     for match in matches:
-        if match.matchedKey != target_matched_key:
+        if match.matched_key != target_matched_key:
             return True
         else:
             return False 
 
 
-def findMaximumNonOverlappingMatches(address, matches):
+def find_maximum_non_overlapping_matches(address, matches):
     if len(matches) == 1:
-        if matches[0]['matchedWord'] is not None and matchAllMatchedWords(address, matches[0].matchedWords):
+        if matches[0]['matchedWord'] is not None and match_all_matched_words(address, matches[0].matched_words):
             return matches
         return []
 
     longest_match_score = 0
     longest_match = []
     for match in matches:
-        if matchAllMatchedWords(address, match.matchedWords):
+        if match_all_matched_words(address, match.matched_words):
             sub_address = address
-            for word in match['matchedWords']:
+            for word in match['matched_words']:
                 sub_address = sub_address.replace(word, '')
-            local_longest_match = findMaximumNonOverlappingMatches(sub_address, matches.filter(filterMatchedKey, match.matchedKey))
+            local_longest_match = find_maximum_non_overlapping_matches(sub_address, matches.filter(filterMatchedKey, match.matched_key))
             local_longest_match.append(match)
-            score = calculateScoreFromMatches(local_longest_match)
+            score = calculate_score_from_matches(local_longest_match)
             if score > longest_match_score:
                 longest_match_score = score
                 longest_match = local_longest_match
 
 
-def matchAllMatchedWords(address, matched_words):
+def match_all_matched_words(address, matched_words):
     address_includes_word = map(lambda matched_words, address: matched_words in address, matched_words, address )
     return reduce(
         lambda p, c:
@@ -392,15 +392,15 @@ def matchAllMatchedWords(address, matched_words):
     )
 
 
-def calculateScoreFromMatches(matches):
+def calculate_score_from_matches(matches):
     score = 0
     for match in matches:
-        score += constant.SCORE_SCHEME[match.matchedKey] * match.confident
+        score += constant.SCORE_SCHEME[match.matched_key] * match.confident
     return score
 
 
 class Match:
-    def __init__(self, confident, matchedKey, matchedWords):
+    def __init__(self, confident, matched_key, matched_words):
         self.confident = confident
-        self.matchedKey = matchedKey
-        self.matchedWords = matchedWords
+        self.matched_key = matched_key
+        self.matched_words = matched_words
