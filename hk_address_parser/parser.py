@@ -106,11 +106,6 @@ def find_match_from_ogcio_record(address, ogcio_record):
             matches.append(occurance)
     return find_maximum_non_overlapping_matches(address, matches)
 
-
-def calculate_score_from_matches(matches):
-    pass
-
-
 def is_chinese(s):
     return re.search(r"/[^\u0000-\u00ff]/", s)
 
