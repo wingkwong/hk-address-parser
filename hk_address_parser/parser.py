@@ -91,7 +91,7 @@ def eliminate_lang_keys(record):
 def find_match_from_ogcio_record(address, ogcio_record):
     matches = []
     for key in constant.ELEMENT_PRIORITY:
-        if ogcio_record['chi'][key] is not None and not is_chinese(address):
+        if key in ogcio_record['chi'] and is_chinese(address):
             occurance = search_occurance(address, key, ogcio_record['chi'][key])
 
             if occurance is None:
@@ -99,12 +99,13 @@ def find_match_from_ogcio_record(address, ogcio_record):
             
             matches.append(occurance)
 
-        if ogcio_record['eng'][key] is not None and not is_chinese(address):
+        if key in ogcio_record['eng'] and not is_chinese(address):
             occurance = search_occurance(address, key, ogcio_record['eng'][key])
             if occurance is None:
                 continue
             matches.append(occurance)
     return find_maximum_non_overlapping_matches(address, matches)
+
 
 def is_chinese(s):
     return re.search(r"/[^\u0000-\u00ff]/", s)
@@ -112,32 +113,32 @@ def is_chinese(s):
 
 def search_occurance(address, ogcio_record_elementKey, ogcio_record_element):
     switcher = {
-        constant.OGCIO_KEY_STREET:           search_occurance_for_street(address, ogcio_record_element),
-        constant.OGCIO_KEY_VILLAGE:          search_occurance_for_village(address, ogcio_record_element),
-        constant.OGCIO_KEY_BLOCK:            search_occurance_for_block(address, ogcio_record_element),
-        constant.OGCIO_KEY_PHASE:            search_occurance_for_phase(address, ogcio_record_element),
-        constant.OGCIO_KEY_ESTATE:           search_occurance_for_estate(address, ogcio_record_element),
-        constant.OGCIO_KEY_REGION:           search_occurance_for_region(address, ogcio_record_element),
-        constant.OGCIO_KEY_BUILDING_NAME:    search_occurance_for_building_name(address, ogcio_record_element)
+        constant.OGCIO_KEY_STREET:           lambda: search_occurance_for_street(address, ogcio_record_element),
+        constant.OGCIO_KEY_VILLAGE:          lambda: search_occurance_for_village(address, ogcio_record_element),
+        constant.OGCIO_KEY_BLOCK:            lambda: search_occurance_for_block(address, ogcio_record_element),
+        constant.OGCIO_KEY_PHASE:            lambda: search_occurance_for_phase(address, ogcio_record_element),
+        constant.OGCIO_KEY_ESTATE:           lambda: search_occurance_for_estate(address, ogcio_record_element),
+        constant.OGCIO_KEY_REGION:           lambda: search_occurance_for_region(address, ogcio_record_element),
+        constant.OGCIO_KEY_BUILDING_NAME:    lambda: search_occurance_for_building_name(address, ogcio_record_element)
     }
     
     return switcher.get(
         ogcio_record_elementKey,
         None
-    )
+    )()
 
 def search_occurance_for_street(address, ogcio_record_element):
-    street_name = ogcio_record_element['StreetName']
-    building_no_from = ogcio_record_element['BuildingNoFrom']
-    building_no_to = ogcio_record_element['BuildingNoTo']
+    street_name = ogcio_record_element.get('StreetName', None)
+    building_no_from = ogcio_record_element.get('BuildingNoFrom', None)
+    building_no_to = ogcio_record_element.get('BuildingNoTo', None)
     address_to_be_searched = split_value_for_space_if_chinese(street_name)
     return search_similarity_for_street_or_village(constant.OGCIO_KEY_STREET, address, address_to_be_searched, building_no_from, building_no_to)
 
 
 def search_occurance_for_village(address, ogcio_record_element):
-    village_name = ogcio_record_element['VillageName']
-    building_no_from = ogcio_record_element['BuildingNoFrom']
-    building_no_to = ogcio_record_element['BuildingNoTo']
+    village_name = ogcio_record_element.get('VillageName', None)
+    building_no_from = ogcio_record_element.get('BuildingNoFrom', None)
+    building_no_to = ogcio_record_element.get('BuildingNoTo', None)
     address_to_be_searched = split_value_for_space_if_chinese(village_name)
     return search_similarity_for_street_or_village(constant.OGCIO_KEY_VILLAGE, address, address_to_be_searched, building_no_from, building_no_to)
 
@@ -297,7 +298,7 @@ def search_similarity_for_street_or_village(type, address, address_to_search, bu
     return sim
 
 def try_to_match_any_number(address, number):
-    matches = re.match(r"/\d+/g")
+    matches = re.match(r"/\d+/g", address)
     if matches is None:
         return False
     
@@ -327,23 +328,22 @@ def find_partial_match(string, string_to_search):
         'match_percentage': 0,
         'matched_word': None
     }
-
-    if string_to_search.index(string):
-        match.match_percentage = 0.9
-        match.match_word = string
+    if string_to_search in string:
+        match['match_percentage'] = 0.9
+        match['matched_word'] = string
     else:   
         break_loop = False
-        for i in range(0, string_to_search.length):
-            for j in range(string_to_search.length, i):
+        for i in range(0, len(string_to_search)):
+            for j in range(len(string_to_search), i):
                substring = string_to_search[i, j]
                if string in substring:
-                    match.match_percentage = len(substring) * 1.0 / len(substring)
-                    match.match_word = substring
+                    match['match_percentage'] = len(substring) * 1.0 / len(substring)
+                    match['matched_word'] = substring
                     break_loop = True
                     break
             if break_loop: 
                 break
-    return match
+    return match['match_percentage'], match['matched_word']
 
 
 def modify_confident_by_partial_match_percentage(confident, match_percentage):
@@ -359,7 +359,7 @@ def filterMatchedKey(matches, target_matched_key):
 
 def find_maximum_non_overlapping_matches(address, matches):
     if len(matches) == 1:
-        if matches[0]['matchedWord'] is not None and match_all_matched_words(address, matches[0].matched_words):
+        if matches[0].matched_words is not None and match_all_matched_words(address, matches[0].matched_words):
             return matches
         return []
 
@@ -368,7 +368,7 @@ def find_maximum_non_overlapping_matches(address, matches):
     for match in matches:
         if match_all_matched_words(address, match.matched_words):
             sub_address = address
-            for word in match['matched_words']:
+            for word in match.matched_words:
                 sub_address = sub_address.replace(word, '')
             local_longest_match = find_maximum_non_overlapping_matches(sub_address, matches.filter(filterMatchedKey, match.matched_key))
             local_longest_match.append(match)
@@ -389,6 +389,9 @@ def match_all_matched_words(address, matched_words):
 
 def calculate_score_from_matches(matches):
     score = 0
+    if matches is None:
+        return score
+
     for match in matches:
         score += constant.SCORE_SCHEME[match.matched_key] * match.confident
     return score
