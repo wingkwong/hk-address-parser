@@ -34,7 +34,7 @@ def normalize_response(response_from_ogcio):
 
 def parse_address(address, normalized_ocgio_result):
     for record in normalized_ocgio_result:
-        matches = find_match_from__ogcio_record(address, record)
+        matches = find_match_from_ogcio_record(address, record)
         record['score'] = calculate_score_from_matches(matches)
         record['matches'] = matches
         record = transform_district(record)
@@ -88,7 +88,7 @@ def eliminate_lang_keys(record):
     return result
 
 
-def find_match_from__ogcio_record(address, ogcio_record):
+def find_match_from_ogcio_record(address, ogcio_record):
     matches = []
     for key in constant.ELEMENT_PRIORITY:
         if ogcio_record['chi'][key] is not None and not is_chinese(address):
