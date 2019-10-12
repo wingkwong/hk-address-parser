@@ -1,5 +1,5 @@
 import re, json
-from .constant import constant
+import hk_address_parser.constant as constant
 from functools import reduce
 from operator import attrgetter
 

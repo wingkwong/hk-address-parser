@@ -1,5 +1,5 @@
 import logging
-from  .resolver import queryAddress, batchQueryAddresses
+from  .resolver import query_address, batch_query_addresses
 
 logger = logging.getLogger(__name__)
 
@@ -7,17 +7,17 @@ class AddressParser:
     @classmethod
     def parse(cls, address):
         if isinstance(address, str):
-            return cls.parseSingleAddress(address)
+            return cls.parse_single_address(address)
         elif isinstance(address, list):
-            return cls.parseMultipleAddress(address)
+            return cls.parse_multiple_address(address)
         else:
             logger.error("Input Type Not Supported. Accepted Types: str or list")
 
     @staticmethod
-    def parseSingleAddress(address):
-        return queryAddress(address)
+    def parse_single_address(address):
+        return query_address(address)
 
     @staticmethod
-    def parseMultipleAddress(address):
-        return batchQueryAddresses(address)
+    def parse_multiple_address(address):
+        return batch_query_addresses(address)
         
