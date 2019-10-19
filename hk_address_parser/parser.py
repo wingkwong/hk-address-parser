@@ -38,8 +38,7 @@ def parse_address(address, normalized_ocgio_result):
         record['score'] = calculate_score_from_matches(matches)
         record['matches'] = matches
         record = transform_district(record)
-
-    normalized_ocgio_result = sorted(normalized_ocgio_result, key=attrgetter('score'))
+    normalized_ocgio_result = sorted(normalized_ocgio_result, key=lambda record: record['score'])
     return normalized_ocgio_result[0:200]
 
 
@@ -267,13 +266,13 @@ def search_similarity_for_street_or_village(type, address, address_to_search, bu
             sim.matched_words.append(match_word)
 
     if building_no_from:
-        no_from = int(building_no_from)
+        no_from = int(re.sub("\D", "", building_no_from))
         if building_no_to:
-            no_to = int(building_no_to)
+            no_to = int(re.sub("\D", "", building_no_to))
         else: 
             no_to = no_from 
 
-        isOdd = int(building_no_from) % 2 == 1
+        isOdd = int(no_from) % 2 == 1
     
         if no_from == no_to:
             if not try_to_match_any_number(address, no_from):
