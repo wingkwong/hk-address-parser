@@ -9,7 +9,7 @@ class AddressParser:
         if isinstance(address, str):
             return cls.parse_single_address(address)
         elif isinstance(address, list):
-            return cls.parse_multiple_address(address)
+            return cls.parse_multiple_addresses(address)
         else:
             logger.error("Input Type Not Supported. Accepted Types: str or list")
 
@@ -18,6 +18,6 @@ class AddressParser:
         return query_address(address)
 
     @staticmethod
-    def parse_multiple_address(address):
+    def parse_multiple_addresses(address):
         return batch_query_addresses(address)
         
