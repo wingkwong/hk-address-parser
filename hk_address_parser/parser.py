@@ -148,7 +148,7 @@ def search_occurance_for_block(address, ogcio_record_element):
     if address in block_no + block_descriptor:
         match = Match(
             constant.CONFIDENT_ALL_MATCH,
-            constant.OGCIO_KEY_BLOCK
+            constant.OGCIO_KEY_BLOCK,
             [
                 block_no,
                 block_descriptor
