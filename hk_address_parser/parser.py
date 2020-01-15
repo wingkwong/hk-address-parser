@@ -172,7 +172,7 @@ def search_occurance_for_phase(address, ogcio_record_element):
     if address in phase_name + phase_no:
         match = Match(
             constant.CONFIDENT_ALL_MATCH,
-            constant.OGCIO_KEY_BLOCK
+            constant.OGCIO_KEY_BLOCK,
             [
                 phase_no,
                 phase_name
@@ -348,13 +348,6 @@ def find_partial_match(string, string_to_search):
 def modify_confident_by_partial_match_percentage(confident, match_percentage):
     return confident * match_percentage * match_percentage * constant.CONFIDENT_MULTIPLIER_PARTIAL_MATCH
 
-def filterMatchedKey(matches, target_matched_key):
-    for match in matches:
-        if match.matched_key != target_matched_key:
-            return True
-        else:
-            return False 
-
 
 def find_maximum_non_overlapping_matches(address, matches):
     if len(matches) == 1:
@@ -364,25 +357,29 @@ def find_maximum_non_overlapping_matches(address, matches):
 
     longest_match_score = 0
     longest_match = []
+    
     for match in matches:
         if match_all_matched_words(address, match.matched_words):
             sub_address = address
             for word in match.matched_words:
                 sub_address = sub_address.replace(word, '')
-            local_longest_match = find_maximum_non_overlapping_matches(sub_address, matches.filter(filterMatchedKey, match.matched_key))
+
+            local_longest_match = find_maximum_non_overlapping_matches(sub_address, [ _match for _match in matches if _match.matched_key != match.matched_key ])
             local_longest_match.append(match)
             score = calculate_score_from_matches(local_longest_match)
             if score > longest_match_score:
                 longest_match_score = score
                 longest_match = local_longest_match
+    return longest_match
 
 
 def match_all_matched_words(address, matched_words):
     address_includes_word = map(lambda matched_words, address: matched_words in address, matched_words, address )
+    
     return reduce(
         lambda p, c:
             ( p and c ),
-            address_includes_word
+            [address_includes_word]
     )
 
 
@@ -401,3 +398,6 @@ class Match:
         self.confident = confident
         self.matched_key = matched_key
         self.matched_words = matched_words
+
+    def __repr__(self):
+        return "Match({}, {}, {})".format(self.confident, self.matched_key, self.matched_words)
