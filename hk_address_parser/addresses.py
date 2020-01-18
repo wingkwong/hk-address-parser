@@ -1,4 +1,6 @@
 import geopy.distance
+from hk_address_parser import ogcio_helper
+
 
 class Address:
     lang_en = "eng"
@@ -17,10 +19,7 @@ class Address:
 
     @staticmethod
     def coordinate():
-        return {
-            "lat": 0,
-            "lng": 0
-        }
+        return {"lat": 0, "lng": 0}
 
     @staticmethod
     def coordinates():
@@ -34,19 +33,17 @@ class Address:
     def confidence():
         return 0
 
-    @staticmethod
     def distance_to(self, address):
         coord_1 = (self.coordinate()["lat"], self.coordinate()["lng"])
         coord_2 = (address.coordinate()["lat"], address.coordinate()["lng"])
         return geopy.distance.vincenty(coord_1, coord_2).km
-        
+
 
 class OGCIOAddress(Address):
     def __init__(self, record):
         self.flattened_components = None
         Address.__init__(self, record)
 
-    @staticmethod
     def components(self, lang):
         if self.flattened_components is None:
             self.flattened_components = self.flatten_components()
@@ -56,58 +53,57 @@ class OGCIOAddress(Address):
         else:
             return self.flattened_components[Address.lang_zh]
 
-    @staticmethod
     def flatten_components(self, lang):
-        flattened_components = {
-            [Address.lang_en]: [],
-            [Address.lang_zh]: []
-        }
+        flattened_components = {[Address.lang_en]: [], [Address.lang_zh]: []}
 
-        langs = [ Address.lang_zh, Address.lang_en ]
+        langs = [Address.lang_zh, Address.lang_en]
 
         for lang in langs:
             for key in self.record[lang]:
-                # TODO: Add ogcio helper
-                flattened_components[lang].append({
-                    "key": key,
-                    "translated_label": '',
-                    "translated_value": ''
-                })
+                flattened_components[lang].append(
+                    {
+                        "key": key,
+                        "translated_label": ogcio_helper.text_for_key(key, lang),
+                        "translated_value": ogcio_helper.text_for_value(
+                            self.record, key, lang
+                        ),
+                    }
+                )
 
         return flattened_components
 
-    @staticmethod
-    def full_address(lang):
+    def full_address(self, lang):
         if lang == Address.lang_en:
-            return '' #TODO: Add fullEnglishAddressFromResult
+            return ogcio_helper.full_english_address_from_result(self.record["eng"])
+        elif lang == Address.lang_zh:
+            return ogcio_helper.full_english_address_from_result(self.record["chi"])
         else:
-            return '' #TODO: Add fullChineseAddressFromResult
+            # TODO:
+            return None
 
-    @staticmethod
     def coordinate(self):
-        g = {
-            "lat": 0,
-            "lng": 0
-        }
+        g = {"lat": 0, "lng": 0}
 
         geo = self.record["geo"]
-        
+
         if geo is not None and len(geo) > 0:
             g["lat"] = float(geo[0]["Latitude"])
             g["lng"] = float(geo[0]["Longitude"])
-        
+
         return g
 
-    @staticmethod
     def coordinates(self):
         geo = self.record["geo"]
         if geo is not None and len(geo) > 0:
             return list(
                 map(
-                    (lambda g: {
-                        "lat": float(g["Latitude"]),
-                        "lng": float(g["Longitude"])
-                    }), geo
+                    (
+                        lambda g: {
+                            "lat": float(g["Latitude"]),
+                            "lng": float(g["Longitude"]),
+                        }
+                    ),
+                    geo,
                 )
             )
         return []
@@ -115,14 +111,17 @@ class OGCIOAddress(Address):
     @staticmethod
     def data_source(lang):
         if lang == Address.lang_en:
-            return 'Office of the Government Chief Information Officer'
+            return "Office of the Government Chief Information Officer"
+        elif lang == Address.lang_zh:
+            return "政府資訊科技總監辦公室"
         else:
-            return '政府資訊科技總監辦公室'
+            # TODO:
+            return ""
 
     @staticmethod
     def confidence():
         # TODO:
-        pass
+        return 0
 
 
 class LandAddress(Address):
@@ -130,4 +129,66 @@ class LandAddress(Address):
         self.flattened_components = None
         Address.__init__(self, record)
 
-    #TODO:
+    def __repr__(self):
+        return "LandAddress({}, {})".format(self.record, self.flattened_components)
+
+    def components(self, lang):
+        if lang == Address.lang_en:
+            return [
+                {
+                    "key": "name",
+                    "translated_label": "name",
+                    "translated_value": self.record["nameEN"],
+                }
+            ]
+        elif lang == Address.lang_zh:
+            return [
+                {
+                    "key": "name",
+                    "translated_label": "name",
+                    "translated_value": self.record["nameZH"],
+                }
+            ]
+        else:
+            # TODO:
+            return []
+
+    def full_address(self, lang):
+        if lang == Address.lang_en:
+            return self.record["addressEN"]
+        elif lang == Address.lang_zh:
+            return self.record["addressZH"]
+        else:
+            # TODO:
+            return None
+
+    def coordinate(self):
+        g = {"lat": 0, "lng": 0}
+
+        lat = self.record["lat"]
+        lng = self.record["lng"]
+
+        if lat is not None and lng is not None:
+            g["lat"] = float(lat)
+            g["lng"] = float(lng)
+
+        return g
+
+    def coordinates(self):
+        # TODO:
+        return []
+
+    @staticmethod
+    def data_source(lang):
+        if lang == Address.lang_en:
+            return "Lands Department"
+        elif lang == Address.lang_zh:
+            return "地政總署"
+        else:
+            # TODO:
+            return ""
+
+    @staticmethod
+    def confidence():
+        # TODO:
+        return 0
