@@ -46,7 +46,7 @@ class OGCIOAddress(Address):
 
     def components(self, lang):
         if self.flattened_components is None:
-            self.flattened_components = self.flatten_components()
+            self.flattened_components = self.flatten_components(lang)
 
         if lang == Address.lang_en:
             return self.flattened_components[Address.lang_en]
