@@ -20,3 +20,9 @@ Assuming that you have Python and ``virtualenv`` installed:
     $ . venv/bin/activate
     $ pip install -r requirements.txt
     $ pip install -e .
+
+Format the code before committing it using ``black``
+
+.. code-block:: sh
+
+    $ make black
