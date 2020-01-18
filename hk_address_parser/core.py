@@ -1,7 +1,8 @@
 import logging
-from  .resolver import query_address, batch_query_addresses
+from .resolver import query_address, batch_query_addresses
 
 logger = logging.getLogger(__name__)
+
 
 class AddressParser:
     @classmethod
@@ -20,4 +21,3 @@ class AddressParser:
     @staticmethod
     def parse_multiple_addresses(address):
         return batch_query_addresses(address)
-        
