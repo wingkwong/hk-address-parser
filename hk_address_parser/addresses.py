@@ -1,4 +1,4 @@
-
+import geopy.distance
 
 class Address:
     lang_en = "eng"
@@ -35,10 +35,11 @@ class Address:
         return 0
 
     @staticmethod
-    def distance_to(address):
-        # TODO:
-        pass
-
+    def distance_to(self, address):
+        coord_1 = (self.coordinate()["lat"], self.coordinate()["lng"])
+        coord_2 = (address.coordinate()["lat"], address.coordinate()["lng"])
+        return geopy.distance.vincenty(coord_1, coord_2).km
+        
 
 class OGCIOAddress(Address):
     def __init__(self, record):
