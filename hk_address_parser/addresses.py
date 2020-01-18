@@ -9,6 +9,9 @@ class Address:
     def __init__(self, record):
         self.record = record
 
+    def __repr__(self):
+        return "Address({})".format(self.record)
+
     @staticmethod
     def components(lang):
         return []
@@ -43,6 +46,9 @@ class OGCIOAddress(Address):
     def __init__(self, record):
         self.flattened_components = None
         Address.__init__(self, record)
+
+    def __repr__(self):
+        return "OGCIOAddress({}, {})".format(self.record, self.flattened_components)
 
     def components(self, lang):
         if self.flattened_components is None:
