@@ -43,22 +43,26 @@ def parse_address(address, normalized_ocgio_result):
         record["score"] = calculate_score_from_matches(matches)
         record["matches"] = matches
         record = transform_district(record)
+
     normalized_ocgio_result = sorted(
         normalized_ocgio_result, key=lambda record: record["score"]
     )
+
     return normalized_ocgio_result[0:200]
 
 
 def transform_district(ogcio_record):
-    if ogcio_record["eng"]["District"]:
-        ogcio_record["eng"]["District"]["DcDistrict"] = dc_district_mapping(
-            ogcio_record["eng"]["District"]["DcDistrict"], False
-        )
+    # 20200119 wingkwong: The API returns the district name instead of district code now
 
-    if ogcio_record["chi"]["District"]:
-        ogcio_record["chi"]["District"]["DcDistrict"] = dc_district_mapping(
-            ogcio_record["chi"]["District"]["DcDistrict"], False
-        )
+    # if ogcio_record["eng"]["District"]:
+    #     ogcio_record["eng"]["District"]["DcDistrict"] = dc_district_mapping(
+    #         ogcio_record["eng"]["District"]["DcDistrict"], False
+    #     )
+
+    # if ogcio_record["chi"]["District"]:
+    #     ogcio_record["chi"]["District"]["DcDistrict"] = dc_district_mapping(
+    #         ogcio_record["chi"]["District"]["DcDistrict"], True
+    #     )
 
     if ogcio_record["eng"]["Region"]:
         ogcio_record["eng"]["Region"] = region_mapping(ogcio_record["eng"]["Region"])
@@ -85,6 +89,7 @@ def region_mapping(val):
     for reg in region:
         if reg == val:
             return region[reg]["eng"]
+    return val
 
 
 def eliminate_lang_keys(record):
@@ -262,7 +267,7 @@ def search_similarity_for_street_or_village(
 ):
     sim = Match(0, type, [])
 
-    if address in address_to_search:
+    if address_to_search in address:
         sim.confident = constant.CONFIDENT_ALL_MATCH
         sim.matched_words.append(address_to_search)
     else:
@@ -302,6 +307,7 @@ def search_similarity_for_street_or_village(
                 sim.confident *= constant.CONFIDENT_MULTIPLIER_FULL_STREET_MATCH
     else:
         sim.confident *= constant.CONFIDENT_MULTIPLIER_NAME_ONLY
+
     return sim
 
 
