@@ -181,8 +181,8 @@ def search_occurance_for_block(address, ogcio_record_element):
     if "BlockDescriptor" in ogcio_record_element:
         block_descriptor = ogcio_record_element["BlockDescriptor"]
     else:
-        block_descriptor = None
-        
+        block_descriptor = ""
+
     block_no = ogcio_record_element["BlockNo"]
     if address in block_no + block_descriptor:
         match = Match(
