@@ -93,8 +93,8 @@ class OGCIOAddress(Address):
         geo = self.record["geo"]
 
         if geo is not None and len(geo) > 0:
-            g["lat"] = float(geo[0]["Latitude"])
-            g["lng"] = float(geo[0]["Longitude"])
+            g["lat"] = float(geo["Latitude"])
+            g["lng"] = float(geo["Longitude"])
 
         return g
 
