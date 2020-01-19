@@ -21,7 +21,12 @@ def search_address_with_ogcio(address):
     ogcio_data = json.dumps(xmltodict.parse(res), ensure_ascii=False)
     ogcio_data = json.loads(ogcio_data)
     searched_result = search_result(address, ogcio_data)
-    return searched_result
+    ocgio_records = []
+
+    for data in searched_result:
+        address_factory = AddressFactory("ogcio", data)
+        ocgio_records.append(address_factory.create_address())
+    return ocgio_records
 
 
 def search_address_from_land(address):
