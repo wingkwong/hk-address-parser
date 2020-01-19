@@ -2,6 +2,7 @@ import json, urllib
 import xmltodict
 import logging
 from urllib import request, parse
+import concurrent.futures
 from .parser import search_result
 from .proj_convertor import ProjConvertor
 from .address_factory import AddressFactory
@@ -98,5 +99,10 @@ def query_address(address):
     return land_records
 
 
-def batch_query_addresses(address):
-    print("batchQueryAddresses")
+def batch_query_addresses(addresses):
+    records = []
+    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(query_address, address) for address in addresses]
+        for future in concurrent.futures.as_completed(futures):
+            records.append(future.result())
+    return records
