@@ -88,7 +88,7 @@ def query_address(address):
     # 3. Not found in OGCIO but in land result.
     # We try to search again from ogcio using the land result
     assumed_land_result = land_records[0]
-    full_address_to_search = land_records[0].full_address_to_search("chi")
+    full_address_to_search = land_records[0].full_address("chi")
     if full_address_to_search != "":
         ogcio_records = search_address_with_ogcio(full_address_to_search)
         if ogcio_records[0].distance_to(assumed_land_result) < NEAR_THRESHOLD:
