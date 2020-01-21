@@ -2,3 +2,4 @@
 venv
 tests
 *.egg-info
+.vscode
