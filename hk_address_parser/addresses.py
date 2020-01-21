@@ -51,7 +51,9 @@ class OGCIOAddress(Address):
         Address.__init__(self, record)
 
     def __repr__(self):
-        return "OGCIOAddress({}, {})".format(self.record, self.flattened_components)
+        return "OGCIOAddress({}, {}, {})".format(
+            self.record, self.components("eng"), self.components("chi")
+        )
 
     def components(self, lang):
         if self.flattened_components is None:
@@ -139,7 +141,9 @@ class LandAddress(Address):
         Address.__init__(self, record)
 
     def __repr__(self):
-        return "LandAddress({}, {})".format(self.record, self.flattened_components)
+        return "LandAddress({}, {}, {})".format(
+            self.record, self.components("eng"), self.components("chi")
+        )
 
     def components(self, lang):
         if lang == Address.lang_en:
