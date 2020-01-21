@@ -1,5 +1,8 @@
 import geopy.distance
+import logging
 from hk_address_parser import ogcio_helper
+
+logger = logging.getLogger(__name__)
 
 
 class Address:
@@ -84,7 +87,7 @@ class OGCIOAddress(Address):
         elif lang == Address.lang_zh:
             return ogcio_helper.full_english_address_from_result(self.record["chi"])
         else:
-            # TODO:
+            logger.error("lang Not Supported. Accepted Types: chi or eng")
             return None
 
     def coordinate(self):
@@ -121,7 +124,7 @@ class OGCIOAddress(Address):
         elif lang == Address.lang_zh:
             return "政府資訊科技總監辦公室"
         else:
-            # TODO:
+            logger.error("lang Not Supported. Accepted Types: chi or eng")
             return ""
 
     @staticmethod
@@ -156,7 +159,7 @@ class LandAddress(Address):
                 }
             ]
         else:
-            # TODO:
+            logger.error("lang Not Supported. Accepted Types: chi or eng")
             return []
 
     def full_address(self, lang):
@@ -165,7 +168,7 @@ class LandAddress(Address):
         elif lang == Address.lang_zh:
             return self.record["addressZH"]
         else:
-            # TODO:
+            logger.error("lang Not Supported. Accepted Types: chi or eng")
             return None
 
     def coordinate(self):
@@ -191,7 +194,7 @@ class LandAddress(Address):
         elif lang == Address.lang_zh:
             return "地政總署"
         else:
-            # TODO:
+            logger.error("lang Not Supported. Accepted Types: chi or eng")
             return ""
 
     @staticmethod
