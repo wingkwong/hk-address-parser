@@ -42,7 +42,7 @@ class Address:
     def distance_to(self, address):
         coord_1 = (self.coordinate()["lat"], self.coordinate()["lng"])
         coord_2 = (address.coordinate()["lat"], address.coordinate()["lng"])
-        return geopy.distance.vincenty(coord_1, coord_2).km
+        return geopy.distance.geodesic(coord_1, coord_2).km
 
 
 class OGCIOAddress(Address):
